@@ -1,0 +1,38 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    env_file: 
+      .env
+    environment:
+      POSTGRES_USER: $DB_USERNAME
+      POSTGRES_PASSWORD: $DB_PASS
+      POSTGRES_DB: $DB_NAME
+    volumes: 
+      - ./db:/var/lib/postgres
+
+  # mongo:
+  #   container_name: mongo
+  #   image: mongo:latest
+  #   restart: always
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - ./mongo_data:/logger
+
+  # api:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile
+  #   container_name: api
+  #   restart: always
+  #   ports:
+  #     - 4321:4321
+  #   depends_on:
+  #     - postgres
+  #   volumes: 
+  #     - ./:/api

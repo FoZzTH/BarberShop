@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { BotModule } from './modules/bot.module';
+import { AppModule } from './modules/app.module';
 
 import { env } from './env';
+import { bot } from './bot';
 
 async function bootstrap() {
-  const app = await NestFactory.create(BotModule);
+  const app = await NestFactory.create(AppModule);
+
   await app.listen(env.app.port);
 }
 

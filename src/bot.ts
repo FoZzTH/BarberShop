@@ -1,8 +1,22 @@
-import * as TelegramBot from 'node-telegram-bot-api';
+import { Telegraf, session } from 'telegraf';
+import { Stage } from 'telegraf';
 
-import { botConfig } from './configs/bot.config';
+const { leave } = Stage;
+
 import { env } from './env';
+import { appointmentScene, startScene } from './scenes/';
+import { cancel } from './consts/commands/sceneSwap.commands';
+import { logger } from './middlewares/logger.middleware';
+import { errorHandler } from './utils/errorHandler.utils';
 
-const botToken = env.bot.token;
+export const bot = new Telegraf(env.bot.token);
 
-export default new TelegramBot(botToken, botConfig);
+const stage = new Stage([appointmentScene, startScene]);
+stage.command(cancel, leave());
+
+bot.use(session());
+bot.use(stage.middleware());
+bot.use(logger);
+bot.catch(errorHandler);
+
+bot.launch();

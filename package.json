@@ -19,21 +19,22 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migrate-up": "db-migrate up --config ./migrations/config/database.json -e dev",
+    "migrate-down": "db-migrate down --config ./migrations/config/database.json -e dev"
   },
   "dependencies": {
     "@nestjs/common": "^7.0.0",
     "@nestjs/core": "^7.0.0",
     "@nestjs/platform-express": "^7.0.0",
     "@nestjs/sequelize": "^0.1.0",
+    "db-migrate-pg": "^1.2.2",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "pg": "^8.3.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^6.5.4",
-    "sequelize": "^5.22.2",
-    "sequelize-typescript": "^1.1.0",
     "telegraf": "^3.38.0"
   },
   "devDependencies": {

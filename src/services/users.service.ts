@@ -1,85 +1,59 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { FindOptions } from 'sequelize/types';
-
-import { Users } from '../models';
-import { IUser } from '../interfaces/user.interfaces';
+import { Injectable } from '@nestjs/common';
+import { UsersRepository } from 'src/repositories/users.repository';
+import { SceneContextMessageUpdate } from 'telegraf/typings/stage';
+import { IUsers } from 'src/interfaces/users.interface';
+import { TelegrafContext } from 'telegraf/typings/context';
+import { create } from 'src/consts/bot/commands/appointment.commands';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @Inject('UsersRepository') private readonly usersRepository: typeof Users,
-  ) {}
+  constructor(private readonly usersRepository: UsersRepository) {}
 
-  // public findOne(options: FindOptions): Promise<Users | null> {
-  //   return this.usersRepository.findOne(options);
-  // }
+  async create(
+    ctx: SceneContextMessageUpdate | TelegrafContext,
+  ): Promise<boolean> {
+    const user: IUsers = {
+      tel_id: ctx.from.id,
+      first_name: ctx.from.first_name,
+      last_name: ctx.from.last_name,
+    };
 
-  // public findByTelId(id: number): Promise<Users | null> {
-  //   return this.usersRepository.findOne({
-  //     where: {
-  //       tel_id: id,
-  //     },
-  //   });
-  // }
+    await this.usersRepository.create(user);
 
-  // public async createUserIfNotEx(ctx: ITelRes): Promise<Users | null> {
-  //   const user: IUser = {
-  //     tel_id: ctx.from.id,
-  //     email: '',
-  //     firstName: ctx.from.first_name,
-  //     lastName: ctx.from.last_name,
-  //     state: noAction,
-  //   };
+    return true;
+  }
 
-  //   const dbUser = await this.findByTelId(ctx.from.id);
+  async createInNotEx(
+    ctx: SceneContextMessageUpdate | TelegrafContext,
+  ): Promise<boolean> {
+    if (await this.findByTelId(ctx)) {
+      return false;
+    }
+    await this.create(ctx);
+    return true;
+  }
 
-  //   if (dbUser) {
-  //     return dbUser;
-  //   }
+  findAll(): Promise<Array<IUsers>> {
+    return this.usersRepository.findAll();
+  }
 
-  //   return this.usersRepository.create(user);
-  // }
+  findByTelId(ctx: SceneContextMessageUpdate | TelegrafContext) {
+    return this.usersRepository.findByTelId(ctx.from.id);
+  }
 
-  // public async changeState(tel_id: number, to: string): Promise<Users | null> {
-  //   const user = await this.findByTelId(tel_id);
+  async update(
+    ctx: SceneContextMessageUpdate | TelegrafContext,
+    column: string,
+    to: string | number | boolean,
+  ): Promise<boolean> {
+    const user = await this.findByTelId(ctx);
 
-  //   if (!user) {
-  //     return null;
-  //   }
+    if (!user) {
+      return false;
+    }
 
-  //   return this.usersRepository.update(
-  //     {
-  //       state: to,
-  //     },
-  //     { where: { tel_id: tel_id } },
-  //   );
-  // }
+    await this.usersRepository.update(ctx.from.id, column, to);
 
-  // public async isStateNotActive(
-  //   ctx: ITelRes,
-  //   state: string,
-  // ): Promise<boolean | null> {
-  //   let user = await this.findByTelId(ctx.from.id);
-
-  //   if (!user) {
-  //     user = await this.createUserIfNotEx(ctx);
-  //   }
-
-  //   return user.state !== state;
-  // }
-
-  // public async setEmail(tel_id: number, email: string): Promise<Users | null> {
-  //   const user = await this.findByTelId(tel_id);
-
-  //   if (!user) {
-  //     return;
-  //   }
-
-  //   return this.usersRepository.update(
-  //     {
-  //       email: email,
-  //     },
-  //     { where: { tel_id: tel_id } },
-  //   );
-  // }
+    return true;
+  }
 }

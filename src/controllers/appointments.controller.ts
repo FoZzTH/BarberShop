@@ -8,7 +8,7 @@ import { appointmentScene } from '../scenes';
 import {
   enterMessage,
   wrongCommand,
-} from '../consts/messages/appointment.messages';
+} from '../consts/bot/messages/appointment.messages';
 import {
   email,
   service,
@@ -17,7 +17,7 @@ import {
   master,
   show,
   create,
-} from 'src/consts/commands/appointment.commands';
+} from 'src/consts/bot/commands/appointment.commands';
 
 import { getArgs } from '../utils/getArgs.utils';
 

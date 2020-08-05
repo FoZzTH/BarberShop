@@ -15,24 +15,17 @@ services:
     volumes: 
       - ./db:/var/lib/postgres
 
-  # mongo:
-  #   container_name: mongo
-  #   image: mongo:latest
-  #   restart: always
-  #   ports:
-  #     - 27017:27017
-  #   volumes:
-  #     - ./mongo_data:/logger
-
-  # api:
-  #   build:
-  #     context: ./
-  #     dockerfile: Dockerfile
-  #   container_name: api
-  #   restart: always
-  #   ports:
-  #     - 4321:4321
-  #   depends_on:
-  #     - postgres
-  #   volumes: 
-  #     - ./:/api
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: api
+    restart: always
+    env_file: 
+      .env
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+    volumes: 
+      - ./:/api

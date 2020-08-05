@@ -8,6 +8,10 @@ export const env = {
   },
   app: {
     port: +process.env.PORT || 3000,
+    email: {
+      login: process.env.EMAIL_LOGIN || '',
+      pass: process.env.EMAIL_PASS || '',
+    },
   },
   db: {
     dialect: process.env.DB_DIALECT || 'postgres',

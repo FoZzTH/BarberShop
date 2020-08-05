@@ -1,16 +1,12 @@
 /* Replace with your SQL commands */
+SET TIMEZONE=0;
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   tel_id INT,
-  email VARCHAR(255),
   first_name VARCHAR(255),
-  last_name VARCHAR(255)
-);
-
-CREATE TABLE services (
-  id SERIAL PRIMARY KEY,
-  value VARCHAR(255)
+  last_name VARCHAR(255),
+  state VARCHAR(255)
 );
 
 CREATE TABLE masters (
@@ -19,26 +15,13 @@ CREATE TABLE masters (
   last_name VARCHAR(255)
 );
 
-CREATE TABLE messages (
-  id SERIAL PRIMARY KEY,
-  user_id INT REFERENCES users (id) ON DELETE CASCADE,
-  chat_id INT,
-  date INT,
-  text VARCHAR(255)
-);
-
 CREATE TABLE appointments (
   id SERIAL PRIMARY KEY,
-  user_id INT REFERENCES users (id) ON DELETE CASCADE,
-  master_id INT REFERENCES masters (id) ON DELETE CASCADE,
-  date DATE,
-  time TIME
-);
-
-CREATE TABLE appointments_services (
-  id SERIAL PRIMARY KEY,
-  appointments_id INT REFERENCES appointments (id) ON DELETE CASCADE,
-  services_id INT REFERENCES services (id) ON DELETE CASCADE
+  users_id INT REFERENCES users (id) ON DELETE CASCADE,
+  masters_id INT REFERENCES masters (id) ON DELETE CASCADE,
+  email VARCHAR(255),
+  date TIMESTAMPTZ,
+  service VARCHAR(255)
 );
 
 INSERT INTO masters (first_name, last_name) 
@@ -47,8 +30,16 @@ VALUES
   ('Edward', 'Coacher'),
   ('Ivan', 'Ivanov');
 
-INSERT INTO services (value) 
-VALUES
-  ('haircut'),
-  ('shaving'),
-  ('both');
+CREATE VIEW todayAppointments AS
+SELECT u.id as user_id, u.first_name, u.last_name, a.id as appointment_id, a.masters_id, a.email, a.date, a.service FROM users u, appointments a
+WHERE u.id = a.users_id AND a.date > NOW()::DATE AND a.date < NOW()::DATE + INTERVAL '1 day';
+
+CREATE FUNCTION analysis(service VARCHAR(255))
+RETURNS TABLE (uniq_users BIGINT, service VARCHAR(255))
+AS $$
+  SELECT COUNT(DISTINCT u.id), a.service 
+  FROM appointments a JOIN users u ON a.users_id = u.id 
+  WHERE LOWER(a.service) = LOWER(service) AND a.date::TIMESTAMP < NOW() AND a.date::TIMESTAMP > NOW() - INTERVAL '1 month'
+  GROUP BY a.service;
+$$
+LANGUAGE SQL

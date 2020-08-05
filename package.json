@@ -6,7 +6,6 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "compose": "docker-compose up",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -21,21 +20,23 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migrate-up": "db-migrate up --config ./migrations/config/database.json -e dev",
-    "migrate-down": "db-migrate down --config ./migrations/config/database.json -e dev"
+    "migrate-down": "db-migrate down --config ./migrations/config/database.json -e dev",
+    "compose": "docker-compose up --build"
   },
   "dependencies": {
+    "@hapi/joi": "^17.1.1",
     "@nestjs/common": "^7.0.0",
     "@nestjs/core": "^7.0.0",
     "@nestjs/platform-express": "^7.0.0",
-    "@nestjs/sequelize": "^0.1.0",
     "db-migrate-pg": "^1.2.2",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1",
+    "moment": "^2.27.0",
+    "node-telegram-bot-api": "^0.50.0",
+    "nodemailer": "^6.4.11",
     "pg": "^8.3.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
-    "rxjs": "^6.5.4",
-    "telegraf": "^3.38.0"
+    "rxjs": "^6.5.4"
   },
   "devDependencies": {
     "@nestjs/cli": "^7.0.0",

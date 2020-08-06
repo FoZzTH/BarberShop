@@ -11,3 +11,4 @@ export const changeServiceIncorrect = 'Service incorrect.Try again.';
 
 export const changeServiceSuccessful =
   'Appointment service changed successful.';
+export const errorMessage = 'Something went wrong >_<';

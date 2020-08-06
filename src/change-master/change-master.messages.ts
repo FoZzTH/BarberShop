@@ -10,3 +10,4 @@ export const changeMasterInput = 'Now choose the master.';
 export const changeMasterIncorrect = 'Incorrect master.Try again.';
 
 export const changeMasterSuccessful = 'Appointment master changed successful.';
+export const errorMessage = 'Something went wrong >_<';

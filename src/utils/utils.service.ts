@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ITelCtx } from 'src/interfaces/ctx.interface';
-import { UsersService } from 'src/users/users.service';
 import { AppointmentsService } from 'src/appointments/appointments.service';
 
 import * as moment from 'moment';
@@ -10,14 +9,13 @@ import {
   shavingService,
   bothService,
 } from 'src/appointments/appointments-services';
-import { noActionState } from 'src/users/users.state';
 import { from } from 'src/mailer/mailer.messages';
 import { MailerService } from 'src/mailer/mailer.service';
+import { IAppointments } from 'src/appointments/appointments.interface';
 
 @Injectable()
 export class UtilsService {
   constructor(
-    private readonly usersService: UsersService,
     private readonly appointmentsService: AppointmentsService,
     private readonly mastersService: MastersService,
     private readonly mailerService: MailerService,
@@ -26,17 +24,6 @@ export class UtilsService {
   getId(from: string): string {
     const regExp = /\./;
     return from.split(regExp)[0];
-  }
-
-  async setState(ctx: ITelCtx, newState: string): Promise<void> {
-    this.usersService.createInNotEx(ctx);
-    this.usersService.update(ctx, 'state', newState);
-  }
-
-  async isUserNotAtState(ctx: ITelCtx, state: string): Promise<boolean> {
-    const user = await this.usersService.findByTelId(ctx);
-
-    return user.state !== state;
   }
 
   async getAppointmentKeyboard(ctx: ITelCtx) {
@@ -169,17 +156,13 @@ export class UtilsService {
 
   async changeAppointment(
     ctx: ITelCtx,
+    appointment: IAppointments,
     validateFunction: (ctx: ITelCtx) => Promise<boolean>,
     column: string,
     to: string,
     mailerSubject: string,
     mailerMessage: string,
   ): Promise<boolean> {
-    const appointment = await this.appointmentsService.findWereColumnNull(
-      ctx,
-      column,
-    );
-
     const isValid = await validateFunction.call(this, ctx);
 
     if (!isValid) {
@@ -195,8 +178,6 @@ export class UtilsService {
       mailerSubject,
       mailerMessage,
     );
-
-    await this.setState(ctx, noActionState);
 
     return true;
   }

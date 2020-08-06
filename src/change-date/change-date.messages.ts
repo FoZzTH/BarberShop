@@ -11,3 +11,4 @@ export const changeDateInput =
 export const changeDateIncorrect = 'Date incorrect.Try again.';
 
 export const changeDateSuccessful = 'Appointment date changed successful.';
+export const errorMessage = 'Something went wrong >_<';

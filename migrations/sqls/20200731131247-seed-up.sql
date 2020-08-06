@@ -5,8 +5,7 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   tel_id INT,
   first_name VARCHAR(255),
-  last_name VARCHAR(255),
-  state VARCHAR(255)
+  last_name VARCHAR(255)
 );
 
 CREATE TABLE masters (

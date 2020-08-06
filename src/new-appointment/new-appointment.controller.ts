@@ -1,12 +1,10 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Inject, forwardRef } from '@nestjs/common';
 import { NewAppointmentService } from './new-appointment.service';
 
 import { bot } from 'src/bot';
 import { ITelCtx } from 'src/interfaces/ctx.interface';
-import { UsersService } from 'src/users/users.service';
 
-import { newCommand, cancelCommand } from './new-appointment.commands';
-import { noActionState, newAppointmentState } from 'src/users/users.state';
+import { cancelCommand } from './new-appointment.commands';
 import {
   newStartMessage,
   emailIncorrect,
@@ -23,182 +21,178 @@ import {
   masterInput,
   appointmentCreated,
   cancelMessage,
+  errorMessage,
 } from './new-appointment.messages';
 import { AppointmentsService } from 'src/appointments/appointments.service';
 import { IAppointments } from 'src/appointments/appointments.interface';
 import { UtilsService } from 'src/utils/utils.service';
+import { AppController } from 'src/app/app.controller';
 
 @Controller('new-appointment')
 export class NewAppointmentController {
   constructor(
+    @Inject(forwardRef(() => AppController))
+    private readonly appController: AppController,
     private readonly newAppointmentService: NewAppointmentService,
     private readonly utils: UtilsService,
-    private readonly usersService: UsersService,
-    private readonly appointmentService: AppointmentsService,
-  ) {
-    bot.onText(newCommand, async (ctx: ITelCtx) => {
-      if (await utils.isUserNotAtState(ctx, noActionState)) {
-        return;
-      }
+    private readonly appointmentsService: AppointmentsService,
+  ) {}
 
-      await utils.setState(ctx, newAppointmentState);
+  async enterNewAppointmentScene(ctx: ITelCtx) {
+    bot.removeListener('message');
 
-      await bot.sendMessage(ctx.chat.id, newStartMessage);
-      await bot.sendMessage(ctx.chat.id, emailInput);
+    await this.newAppointmentStart(ctx);
 
-      this.setEmail();
-    });
-
-    bot.onText(cancelCommand, async (ctx: ITelCtx) => {
-      if (await utils.isUserNotAtState(ctx, newAppointmentState)) {
-        return;
-      }
-      await utils.setState(ctx, noActionState);
-
-      await appointmentService.clear(ctx);
-
-      bot.sendMessage(ctx.chat.id, cancelMessage, {
-        reply_markup: {
-          remove_keyboard: true,
-        },
-      });
-    });
-  }
-
-  setEmail() {
     bot.on('message', async (ctx: ITelCtx) => {
-      if (await this.utils.isUserNotAtState(ctx, newAppointmentState)) {
-        return;
-      }
-
-      const isEmailValid = await this.newAppointmentService.checkEmail(ctx);
-
-      if (isEmailValid) {
-        bot.removeListener('message');
-
-        const appointment: IAppointments = {
-          date: null,
-          email: ctx.text,
-          masters_id: null,
-          service: null,
-          user_id: ctx.from.id,
-        };
-
-        if (await this.appointmentService.create(appointment)) {
-          await bot.sendMessage(ctx.chat.id, emailCorrect);
-
-          await bot.sendMessage(
-            ctx.chat.id,
-            serviceInput,
-            this.utils.getServiceKeyboard(),
-          );
-          this.setService();
-
-          return;
+      try {
+        if (ctx.text.match(cancelCommand)) {
+          await this.cancelCommand(ctx);
+        } else {
+          await this.newAppointment(ctx);
         }
-      }
+      } catch (err) {
+        console.log({
+          name: err.name,
+          message: err.message,
+        });
 
-      bot.sendMessage(ctx.chat.id, emailIncorrect);
+        bot.sendMessage(ctx.chat.id, errorMessage);
+        this.cancelCommand(ctx);
+      }
     });
   }
 
-  setService() {
-    bot.on('message', async (ctx: ITelCtx) => {
-      if (await this.utils.isUserNotAtState(ctx, newAppointmentState)) {
-        return;
-      }
+  private async cancelCommand(ctx: ITelCtx) {
+    await this.appointmentsService.clear(ctx);
 
-      const isServiceValid = await this.utils.checkService(ctx);
-
-      if (isServiceValid) {
-        bot.removeListener('message');
-
-        const appointment = await this.appointmentService.findWereColumnNull(
-          ctx,
-          'masters_id',
-        );
-        await this.appointmentService.update(
-          appointment.id,
-          'service',
-          ctx.text,
-        );
-
-        await bot.sendMessage(ctx.chat.id, serviceCorrect);
-
-        await bot.sendMessage(ctx.chat.id, dateInput);
-        this.setDate();
-
-        return;
-      }
-
-      bot.sendMessage(ctx.chat.id, serviceIncorrect);
+    bot.sendMessage(ctx.chat.id, cancelMessage, {
+      reply_markup: {
+        remove_keyboard: true,
+      },
     });
+
+    this.appController.enterMainMenuScene();
   }
 
-  setDate() {
-    bot.on('message', async (ctx: ITelCtx) => {
-      if (await this.utils.isUserNotAtState(ctx, newAppointmentState)) {
-        return;
-      }
+  private async newAppointmentStart(ctx: ITelCtx) {
+    const appointment: IAppointments = {
+      date: null,
+      email: null,
+      masters_id: null,
+      service: null,
+      user_id: ctx.from.id,
+    };
 
-      const isDateValid = await this.utils.checkDate(ctx);
+    await this.appointmentsService.beginTransaction();
+    await this.appointmentsService.create(appointment);
 
-      if (isDateValid) {
-        bot.removeListener('message');
-
-        const appointment = await this.appointmentService.findWereColumnNull(
-          ctx,
-          'masters_id',
-        );
-        await this.appointmentService.update(appointment.id, 'date', ctx.text);
-
-        await bot.sendMessage(ctx.chat.id, dateCorrect);
-
-        await bot.sendMessage(
-          ctx.chat.id,
-          masterInput,
-          await this.utils.getMastersKeyboard(),
-        );
-        this.setMaster();
-
-        return;
-      }
-
-      bot.sendMessage(ctx.chat.id, dateIncorrect);
-    });
+    await bot.sendMessage(ctx.chat.id, newStartMessage);
+    await bot.sendMessage(ctx.chat.id, emailInput);
   }
 
-  setMaster() {
-    bot.on('message', async (ctx: ITelCtx) => {
-      if (await this.utils.isUserNotAtState(ctx, newAppointmentState)) {
-        return;
-      }
+  private async newAppointment(ctx: ITelCtx) {
+    const appointment = await this.appointmentsService.findWereColumnNull(
+      ctx,
+      'masters_id',
+    );
 
-      const isMasterValid = await this.utils.checkMaster(ctx);
-      const masterId = this.utils.getId(ctx.text);
+    if (!appointment) {
+      console.log(await this.appointmentsService.findAll());
+    }
 
-      if (isMasterValid) {
-        bot.removeListener('message');
+    if (!appointment.email) {
+      this.setEmail(ctx, appointment);
+    } else if (!appointment.service) {
+      this.setService(ctx, appointment);
+    } else if (!appointment.date) {
+      this.setDate(ctx, appointment);
+    } else if (!appointment.masters_id) {
+      this.setMaster(ctx, appointment);
+    }
+  }
 
-        const appointment = await this.appointmentService.findWereColumnNull(
-          ctx,
-          'masters_id',
-        );
-        await this.appointmentService.update(
-          appointment.id,
-          'masters_id',
-          masterId,
-        );
-        await this.appointmentService.clear(ctx);
+  private async setEmail(ctx: ITelCtx, appointment: IAppointments) {
+    const isEmailValid = await this.newAppointmentService.checkEmail(ctx);
 
-        await bot.sendMessage(ctx.chat.id, masterCorrect);
-        await bot.sendMessage(ctx.chat.id, appointmentCreated);
+    if (isEmailValid) {
+      await this.appointmentsService.update(appointment.id, 'email', ctx.text);
 
-        await this.utils.setState(ctx, noActionState);
-      } else {
-        const keyboard = await this.utils.getMastersKeyboard();
-        bot.sendMessage(ctx.chat.id, masterIncorrect, keyboard);
-      }
-    });
+      await bot.sendMessage(ctx.chat.id, emailCorrect);
+
+      await bot.sendMessage(
+        ctx.chat.id,
+        serviceInput,
+        this.utils.getServiceKeyboard(),
+      );
+
+      return;
+    }
+
+    bot.sendMessage(ctx.chat.id, emailIncorrect);
+  }
+
+  private async setService(ctx: ITelCtx, appointment: IAppointments) {
+    const isServiceValid = await this.utils.checkService(ctx);
+
+    if (isServiceValid) {
+      await this.appointmentsService.update(
+        appointment.id,
+        'service',
+        ctx.text,
+      );
+
+      await bot.sendMessage(ctx.chat.id, serviceCorrect);
+
+      await bot.sendMessage(ctx.chat.id, dateInput);
+
+      return;
+    }
+
+    bot.sendMessage(ctx.chat.id, serviceIncorrect);
+  }
+
+  private async setDate(ctx: ITelCtx, appointment: IAppointments) {
+    const isDateValid = await this.utils.checkDate(ctx);
+
+    if (isDateValid) {
+      await this.appointmentsService.update(appointment.id, 'date', ctx.text);
+
+      await bot.sendMessage(ctx.chat.id, dateCorrect);
+
+      await bot.sendMessage(
+        ctx.chat.id,
+        masterInput,
+        await this.utils.getMastersKeyboard(),
+      );
+
+      return;
+    }
+
+    bot.sendMessage(ctx.chat.id, dateIncorrect);
+  }
+
+  private async setMaster(ctx: ITelCtx, appointment: IAppointments) {
+    const isMasterValid = await this.utils.checkMaster(ctx);
+    const masterId = this.utils.getId(ctx.text);
+
+    if (isMasterValid) {
+      await this.appointmentsService.update(
+        appointment.id,
+        'masters_id',
+        masterId,
+      );
+
+      await this.appointmentsService.clear(ctx);
+
+      await bot.sendMessage(ctx.chat.id, masterCorrect);
+      await bot.sendMessage(ctx.chat.id, appointmentCreated);
+
+      this.appController.enterMainMenuScene();
+
+      return;
+    }
+
+    const keyboard = await this.utils.getMastersKeyboard();
+    bot.sendMessage(ctx.chat.id, masterIncorrect, keyboard);
   }
 }

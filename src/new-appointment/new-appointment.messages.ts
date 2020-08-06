@@ -20,3 +20,4 @@ export const masterIncorrect = 'Master incorrect. Try again.';
 export const masterCorrect = 'Master set.';
 
 export const appointmentCreated = 'Appointment created successful.';
+export const errorMessage = 'Something went wrong >_<';

@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { ITelCtx } from 'src/interfaces/ctx.interface';
 import { IUsers } from './users.interface';
-import { noActionState } from './users.state';
 
 @Injectable()
 export class UsersService {
@@ -13,7 +12,6 @@ export class UsersService {
       tel_id: ctx.from.id,
       first_name: ctx.from.first_name,
       last_name: ctx.from.last_name,
-      state: noActionState,
     };
 
     await this.usersRepository.create(user);

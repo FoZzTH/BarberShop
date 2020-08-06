@@ -1,104 +1,127 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Inject, forwardRef } from '@nestjs/common';
 import { bot } from 'src/bot';
-import { changeDateCommand, cancelCommand } from './change-date.commands';
+import { cancelCommand } from './change-date.commands';
 import { ITelCtx } from 'src/interfaces/ctx.interface';
 import { UtilsService } from 'src/utils/utils.service';
-import { noActionState, changeDateState } from 'src/users/users.state';
 import {
   changeDateStartMessage,
   changeDateIncorrect,
   changeDateSuccessful,
   changeDateCancelMessage,
   changeDateInput,
+  errorMessage,
 } from './change-date.messages';
 import { AppointmentsService } from 'src/appointments/appointments.service';
-import { MailerService } from 'src/mailer/mailer.service';
 import {
-  from,
   dateChangedSubject,
   dateChangedMessage,
 } from 'src/mailer/mailer.messages';
-import { ChangeDateService } from './change-date.service';
+import { IAppointments } from 'src/appointments/appointments.interface';
+import { AppController } from 'src/app/app.controller';
 
 @Controller('change-date')
 export class ChangeDateController {
+  private column: string;
+
   constructor(
+    @Inject(forwardRef(() => AppController))
+    private readonly appController: AppController,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
-    private readonly mailerService: MailerService,
-    private readonly changeDateService: ChangeDateService,
   ) {
-    bot.onText(changeDateCommand, async (ctx: ITelCtx) => {
-      if (await utils.isUserNotAtState(ctx, noActionState)) {
-        return;
+    this.column = 'date';
+  }
+
+  async enterChangeDateState(ctx: ITelCtx) {
+    bot.removeListener('message');
+
+    await this.changeDateStart(ctx);
+
+    bot.on('message', async (ctx: ITelCtx) => {
+      try {
+        if (ctx.text.match(cancelCommand)) {
+          await this.cancelCommand(ctx);
+        } else {
+          await this.changeAppointment(ctx);
+        }
+      } catch (err) {
+        console.log({
+          name: err.name,
+          message: err.message,
+        });
+
+        bot.sendMessage(ctx.chat.id, errorMessage);
+        this.cancelCommand(ctx);
       }
+    });
+  }
 
-      await utils.setState(ctx, changeDateState);
+  private async changeDateStart(ctx: ITelCtx) {
+    const keyboard = await this.utils.getAppointmentKeyboard(ctx);
+    await bot.sendMessage(ctx.chat.id, changeDateStartMessage, keyboard);
+  }
 
-      const keyboard = await utils.getAppointmentKeyboard(ctx);
-      await bot.sendMessage(ctx.chat.id, changeDateStartMessage, keyboard);
+  private async cancelCommand(ctx: ITelCtx) {
+    await this.appointmentsService.rollbackTransaction();
+    await this.appointmentsService.commitTransaction();
 
-      this.selectAppointment();
+    await bot.sendMessage(ctx.chat.id, changeDateCancelMessage, {
+      reply_markup: {
+        remove_keyboard: true,
+      },
     });
 
-    bot.onText(cancelCommand, async (ctx: ITelCtx) => {
-      if (await utils.isUserNotAtState(ctx, changeDateState)) {
-        return;
-      }
+    this.appController.enterMainMenuScene();
+  }
 
-      await appointmentsService.rollbackTransaction();
-      await appointmentsService.commitTransaction();
+  private async changeAppointment(ctx: ITelCtx) {
+    const appointment = await this.appointmentsService.findWereColumnNull(
+      ctx,
+      this.column,
+    );
 
-      await utils.setState(ctx, noActionState);
-      bot.removeListener('message');
-      await bot.sendMessage(ctx.chat.id, changeDateCancelMessage, {
+    if (appointment) {
+      this.setDate(ctx, appointment);
+    } else {
+      this.selectAppointment(ctx);
+    }
+  }
+
+  private async selectAppointment(ctx: ITelCtx) {
+    const success = await this.utils.selectAppointment(ctx, this.column);
+
+    if (success) {
+      bot.sendMessage(ctx.chat.id, changeDateInput, {
         reply_markup: {
           remove_keyboard: true,
         },
       });
-    });
+
+      return;
+    }
+
+    const keyboard = await this.utils.getAppointmentKeyboard(ctx);
+    bot.sendMessage(ctx.chat.id, changeDateIncorrect, keyboard);
   }
 
-  selectAppointment() {
-    bot.on('message', async (ctx: ITelCtx) => {
-      const success = await this.utils.selectAppointment(ctx, 'date');
+  private async setDate(ctx: ITelCtx, appointment: IAppointments) {
+    const success = await this.utils.changeAppointment(
+      ctx,
+      appointment,
+      this.utils.checkDate,
+      this.column,
+      ctx.text,
+      dateChangedSubject,
+      dateChangedMessage,
+    );
 
-      if (success) {
-        bot.sendMessage(ctx.chat.id, changeDateInput, {
-          reply_markup: {
-            remove_keyboard: true,
-          },
-        });
-        this.setDate();
+    if (success) {
+      await bot.sendMessage(ctx.chat.id, changeDateSuccessful);
+      this.appController.enterMainMenuScene();
 
-        return;
-      }
+      return;
+    }
 
-      const keyboard = await this.utils.getAppointmentKeyboard(ctx);
-      bot.sendMessage(ctx.chat.id, changeDateIncorrect, keyboard);
-    });
-  }
-
-  setDate() {
-    bot.removeListener('message');
-    bot.on('message', async (ctx: ITelCtx) => {
-      const success = await this.utils.changeAppointment(
-        ctx,
-        this.utils.checkDate,
-        'date',
-        ctx.text,
-        dateChangedSubject,
-        dateChangedMessage,
-      );
-
-      if (success) {
-        bot.removeListener('message');
-        await bot.sendMessage(ctx.chat.id, changeDateSuccessful);
-
-        return;
-      }
-
-      bot.sendMessage(ctx.chat.id, changeDateIncorrect);
-    });
+    bot.sendMessage(ctx.chat.id, changeDateIncorrect);
   }
 }

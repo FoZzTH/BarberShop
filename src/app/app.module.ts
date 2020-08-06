@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NewAppointmentModule } from 'src/new-appointment/new-appointment.module';
@@ -9,21 +9,19 @@ import { UtilsModule } from 'src/utils/utils.module';
 import { ChangeDateModule } from 'src/change-date/change-date.module';
 import { ChangeMasterModule } from 'src/change-master/change-master.module';
 import { ChangeServiceModule } from 'src/change-service/change-service.module';
-import { MailerModule } from 'src/mailer/mailer.module';
 
 @Module({
   imports: [
     UtilsModule,
     UsersModule,
     AppointmentsModule,
-    NewAppointmentModule,
-    AbortModule,
-    ChangeDateModule,
-    ChangeMasterModule,
-    ChangeServiceModule,
-    MailerModule,
+    forwardRef(() => NewAppointmentModule),
+    forwardRef(() => AbortModule),
+    forwardRef(() => ChangeDateModule),
+    forwardRef(() => ChangeMasterModule),
+    forwardRef(() => ChangeServiceModule),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [AppController, AppService],
+  exports: [AppController],
 })
 export class AppModule {}

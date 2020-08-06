@@ -9,3 +9,6 @@ export const helpMessage = `Send one of these commands to:
 /abort - abort the appointment.
 /view - see appointments from view.
 /proc *service name* - see info from procedure.`;
+
+export const defaultMessage = `Don't understand, sorry. Try again or type /help to see a list of commands.`;
+export const errorMessage = 'Something went wrong. Try again later >_<';

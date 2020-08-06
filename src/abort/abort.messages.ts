@@ -6,3 +6,5 @@ export const abortNoAppointment = `You don't have any appointment.`;
 
 export const badInput = `Don't found this appointment. Try again.`;
 export const abortSuccess = 'Appointment aborted.';
+
+export const errorMessage = 'Something went wrong >_<';

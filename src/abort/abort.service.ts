@@ -9,14 +9,10 @@ import {
   appointmentDeletedSubject,
   appointmentDeletedMessage,
 } from 'src/mailer/mailer.messages';
-import { bot } from 'src/bot';
-import { abortSuccess } from './abort.messages';
-import { noActionState } from 'src/users/users.state';
 
 @Injectable()
 export class AbortService {
   constructor(
-    private readonly usersService: UsersService,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
     private readonly mailerService: MailerService,
@@ -35,7 +31,6 @@ export class AbortService {
     }
 
     await this.appointmentsService.delete(+id);
-    await this.utils.setState(ctx, noActionState);
 
     this.mailerService.send(
       appointment.email,

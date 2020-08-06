@@ -1,14 +1,19 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AbortController } from './abort.controller';
 import { AppointmentsModule } from 'src/appointments/appointments.module';
-import { UsersModule } from 'src/users/users.module';
 import { AbortService } from './abort.service';
 import { UtilsModule } from 'src/utils/utils.module';
 import { MailerModule } from 'src/mailer/mailer.module';
+import { AppModule } from 'src/app/app.module';
 
 @Module({
-  imports: [AppointmentsModule, UsersModule, UtilsModule, MailerModule],
-  controllers: [AbortController],
-  providers: [AbortService],
+  imports: [
+    forwardRef(() => AppModule),
+    AppointmentsModule,
+    UtilsModule,
+    MailerModule,
+  ],
+  providers: [AbortController, AbortService],
+  exports: [AbortController],
 })
 export class AbortModule {}

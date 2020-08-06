@@ -1,0 +1,31 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    env_file: 
+      .env
+    environment:
+      POSTGRES_USER: $DB_USERNAME
+      POSTGRES_PASSWORD: $DB_PASS
+      POSTGRES_DB: $DB_NAME
+    volumes: 
+      - ./db:/var/lib/postgres
+
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: api
+    restart: always
+    env_file: 
+      .env
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+    volumes: 
+      - ./:/api

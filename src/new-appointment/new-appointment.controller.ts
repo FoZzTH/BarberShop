@@ -1,4 +1,4 @@
-import { Controller, Inject, forwardRef } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { NewAppointmentService } from './new-appointment.service';
 
 import { bot } from 'src/bot';
@@ -26,20 +26,18 @@ import {
 import { AppointmentsService } from 'src/appointments/appointments.service';
 import { IAppointments } from 'src/appointments/appointments.interface';
 import { UtilsService } from 'src/utils/utils.service';
-import { AppController } from 'src/app/app.controller';
+import { newAppointmentState } from 'src/users/users.state';
 
 @Controller('new-appointment')
 export class NewAppointmentController {
   constructor(
-    @Inject(forwardRef(() => AppController))
-    private readonly appController: AppController,
     private readonly newAppointmentService: NewAppointmentService,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
   ) {}
 
   async enterNewAppointmentScene(ctx: ITelCtx) {
-    bot.removeListener('message');
+    await this.utils.changeUserStateTo(ctx, newAppointmentState);
 
     await this.newAppointmentStart(ctx);
 
@@ -71,7 +69,7 @@ export class NewAppointmentController {
       },
     });
 
-    this.appController.enterMainMenuScene();
+    this.utils.enterMainMenuScene(ctx);
   }
 
   private async newAppointmentStart(ctx: ITelCtx) {
@@ -187,7 +185,7 @@ export class NewAppointmentController {
       await bot.sendMessage(ctx.chat.id, masterCorrect);
       await bot.sendMessage(ctx.chat.id, appointmentCreated);
 
-      this.appController.enterMainMenuScene();
+      this.utils.enterMainMenuScene(ctx);
 
       return;
     }

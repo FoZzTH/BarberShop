@@ -8,7 +8,6 @@ import { AppModule } from 'src/app/app.module';
 
 @Module({
   imports: [
-    forwardRef(() => AppModule),
     AppointmentsModule,
     UtilsModule,
     MailerModule,

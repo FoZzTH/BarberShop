@@ -13,3 +13,5 @@ export const abortCommand = /^\/abort$/;
 export const changeDateCommand = /^\/date$/;
 export const changeMasterCommand = /^\/master$/;
 export const changeServiceCommand = /^\/service$/;
+
+export const userCommand = /^\/user$/;

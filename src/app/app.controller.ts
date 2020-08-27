@@ -15,6 +15,7 @@ import {
   changeMasterCommand,
   changeServiceCommand,
   newCommand,
+  userCommand,
 } from './app.commands';
 import {
   helpMessage,
@@ -28,24 +29,35 @@ import { ChangeDateController } from 'src/change-date/change-date.controller';
 import { ChangeMasterController } from 'src/change-master/change-master.controller';
 import { ChangeServiceController } from 'src/change-service/change-service.controller';
 import { NewAppointmentController } from 'src/new-appointment/new-appointment.controller';
+import { UsersService } from 'src/users/users.service';
+import { FirebaseUsersController } from 'src/firebase-users/firebase-users.controller';
+import { noActionState } from 'src/users/users.state';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appointmentsService: AppointmentsService,
+    private readonly firebaseUsersController: FirebaseUsersController,
+    private readonly usersService: UsersService,
     private readonly abortController: AbortController,
     private readonly newAppointmentController: NewAppointmentController,
     private readonly changeDateController: ChangeDateController,
     private readonly changeMasterController: ChangeMasterController,
     private readonly changeServiceController: ChangeServiceController,
+    private readonly utils: UtilsService,
   ) {
     this.enterMainMenuScene();
   }
 
   async enterMainMenuScene() {
-    bot.removeListener('message');
-
     bot.on('message', async (ctx: ITelCtx, params: Array<string>) => {
+      await this.usersService.createIfNotEx(ctx);
+
+      if (await this.utils.isUserNotAtState(ctx, noActionState)) {
+        return;
+      }
+
       try {
         if (ctx.text.match(startCommand)) {
           await this.startCommand(ctx);
@@ -69,6 +81,8 @@ export class AppController {
           await this.changeMasterCommand(ctx);
         } else if (ctx.text.match(changeServiceCommand)) {
           await this.changeServiceCommand(ctx);
+        } else if (ctx.text.match(userCommand)) {
+          await this.usersCommand(ctx);
         } else {
           await this.defaultMessage(ctx);
         }
@@ -141,5 +155,9 @@ export class AppController {
 
   private async changeServiceCommand(ctx: ITelCtx): Promise<void> {
     this.changeServiceController.enterChangeServiceState(ctx);
+  }
+
+  private async usersCommand(ctx: ITelCtx) {
+    this.firebaseUsersController.enterUserScene(ctx);
   }
 }

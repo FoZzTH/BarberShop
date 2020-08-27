@@ -1,10 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { AppointmentsRepository } from './appointments.repository';
 import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [UsersModule],
+  imports: [
+    //forwardRef(() => UsersModule)
+    UsersModule
+  ],
   providers: [AppointmentsService, AppointmentsRepository],
   exports: [AppointmentsService],
 })

@@ -11,23 +11,25 @@ import {
 } from './abort.messages';
 import { AbortService } from './abort.service';
 import { UtilsService } from 'src/utils/utils.service';
-import { AppController } from 'src/app/app.controller';
+import { abortState } from 'src/users/users.state';
 
 @Controller('abort')
 export class AbortController {
   constructor(
-    @Inject(forwardRef(() => AppController))
-    private readonly appController: AppController,
     private readonly utils: UtilsService,
     private readonly abortService: AbortService,
   ) {}
 
   async enterAbortScene(ctx: ITelCtx): Promise<void> {
-    bot.removeListener('message');
+    await this.utils.changeUserStateTo(ctx, abortState);
 
     await this.abortStart(ctx);
 
     bot.on('message', async (ctx: ITelCtx) => {
+      if (await this.utils.isUserNotAtState(ctx, abortState)) {
+        return;
+      }
+
       try {
         if (ctx.text.match(cancelCommand)) {
           await this.cancelCommand(ctx);
@@ -52,7 +54,7 @@ export class AbortController {
   }
 
   private async cancelCommand(ctx: ITelCtx): Promise<void> {
-    this.appController.enterMainMenuScene();
+    this.utils.enterMainMenuScene(ctx);
 
     bot.sendMessage(ctx.chat.id, cancelMessage, {
       reply_markup: {
@@ -65,7 +67,7 @@ export class AbortController {
     const success = await this.abortService.abort(ctx);
 
     if (success) {
-      bot.removeListener('message');
+      this.utils.enterMainMenuScene(ctx);
       bot.sendMessage(ctx.chat.id, abortSuccess, {
         reply_markup: {
           remove_keyboard: true,

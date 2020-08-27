@@ -1,4 +1,4 @@
-import { Controller, Inject, forwardRef } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { UtilsService } from 'src/utils/utils.service';
 import { AppointmentsService } from 'src/appointments/appointments.service';
 import { bot } from 'src/bot';
@@ -17,15 +17,13 @@ import {
   serviceChangedMessage,
 } from 'src/mailer/mailer.messages';
 import { IAppointments } from 'src/appointments/appointments.interface';
-import { AppController } from 'src/app/app.controller';
+import { changeServiceState } from 'src/users/users.state';
 
 @Controller('change-service')
 export class ChangeServiceController {
   private column: string;
 
   constructor(
-    @Inject(forwardRef(() => AppController))
-    private readonly appController: AppController,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
   ) {
@@ -33,11 +31,15 @@ export class ChangeServiceController {
   }
 
   async enterChangeServiceState(ctx: ITelCtx) {
-    bot.removeListener('message');
+    await this.utils.changeUserStateTo(ctx, changeServiceState);
 
     await this.changeServiceStart(ctx);
 
     bot.on('message', async (ctx: ITelCtx) => {
+      if (await this.utils.isUserNotAtState(ctx, changeServiceState)) {
+        return;
+      }
+
       try {
         if (ctx.text.match(cancelCommand)) {
           await this.cancelCommand(ctx);
@@ -71,7 +73,7 @@ export class ChangeServiceController {
       },
     });
 
-    this.appController.enterMainMenuScene();
+    this.utils.enterMainMenuScene(ctx);
   }
 
   private async changeAppointment(ctx: ITelCtx) {
@@ -114,7 +116,7 @@ export class ChangeServiceController {
 
     if (success) {
       await bot.sendMessage(ctx.chat.id, changeServiceSuccessful);
-      this.appController.enterMainMenuScene();
+      this.utils.enterMainMenuScene(ctx);
 
       return;
     }

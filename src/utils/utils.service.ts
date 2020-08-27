@@ -12,18 +12,34 @@ import {
 import { from } from 'src/mailer/mailer.messages';
 import { MailerService } from 'src/mailer/mailer.service';
 import { IAppointments } from 'src/appointments/appointments.interface';
+import { UsersService } from 'src/users/users.service';
+import { noActionState } from 'src/users/users.state';
 
 @Injectable()
 export class UtilsService {
   constructor(
     private readonly appointmentsService: AppointmentsService,
+    private readonly usersService: UsersService,
     private readonly mastersService: MastersService,
     private readonly mailerService: MailerService,
   ) {}
-
+  
+  async enterMainMenuScene(ctx: ITelCtx): Promise<void> {
+    await this.changeUserStateTo(ctx, noActionState);
+  }
+  
   getId(from: string): string {
     const regExp = /\./;
     return from.split(regExp)[0];
+  }
+
+  async isUserNotAtState(ctx: ITelCtx, state: string): Promise<boolean> {
+    const user = await this.usersService.findByTelId(ctx);
+    return user.state !== state;
+  }
+
+  async changeUserStateTo(ctx: ITelCtx, to: string): Promise<void> {
+    await this.usersService.update(ctx, 'state', to);
   }
 
   async getAppointmentKeyboard(ctx: ITelCtx) {

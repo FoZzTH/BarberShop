@@ -1,4 +1,4 @@
-import { Controller, Inject, forwardRef } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { bot } from 'src/bot';
 import { UtilsService } from 'src/utils/utils.service';
 import { AppointmentsService } from 'src/appointments/appointments.service';
@@ -16,16 +16,14 @@ import {
   masterChangedSubject,
   masterChangedMessage,
 } from 'src/mailer/mailer.messages';
-import { AppController } from 'src/app/app.controller';
 import { IAppointments } from 'src/appointments/appointments.interface';
+import { changeMasterState } from 'src/users/users.state';
 
 @Controller('change-master')
 export class ChangeMasterController {
   private column: string;
 
   constructor(
-    @Inject(forwardRef(() => AppController))
-    private readonly appController: AppController,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
   ) {
@@ -33,11 +31,15 @@ export class ChangeMasterController {
   }
 
   async enterChangeMasterState(ctx: ITelCtx) {
-    bot.removeListener('message');
+    await this.utils.changeUserStateTo(ctx, changeMasterState);
 
     await this.changeMasterStart(ctx);
 
     bot.on('message', async (ctx: ITelCtx) => {
+      if (await this.utils.isUserNotAtState(ctx, changeMasterState)) {
+        return;
+      }
+
       try {
         if (ctx.text.match(cancelCommand)) {
           await this.cancelCommand(ctx);
@@ -71,7 +73,7 @@ export class ChangeMasterController {
       },
     });
 
-    this.appController.enterMainMenuScene();
+    this.utils.enterMainMenuScene(ctx);
   }
 
   private async changeAppointment(ctx: ITelCtx) {
@@ -114,7 +116,7 @@ export class ChangeMasterController {
 
     if (success) {
       await bot.sendMessage(ctx.chat.id, changeMasterSuccessful);
-      this.appController.enterMainMenuScene();
+      this.utils.enterMainMenuScene(ctx);
 
       return;
     }

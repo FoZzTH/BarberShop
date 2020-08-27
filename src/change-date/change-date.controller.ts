@@ -1,4 +1,4 @@
-import { Controller, Inject, forwardRef } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { bot } from 'src/bot';
 import { cancelCommand } from './change-date.commands';
 import { ITelCtx } from 'src/interfaces/ctx.interface';
@@ -17,15 +17,13 @@ import {
   dateChangedMessage,
 } from 'src/mailer/mailer.messages';
 import { IAppointments } from 'src/appointments/appointments.interface';
-import { AppController } from 'src/app/app.controller';
+import { changeDateState } from 'src/users/users.state';
 
 @Controller('change-date')
 export class ChangeDateController {
   private column: string;
 
   constructor(
-    @Inject(forwardRef(() => AppController))
-    private readonly appController: AppController,
     private readonly utils: UtilsService,
     private readonly appointmentsService: AppointmentsService,
   ) {
@@ -33,11 +31,15 @@ export class ChangeDateController {
   }
 
   async enterChangeDateState(ctx: ITelCtx) {
-    bot.removeListener('message');
+    await this.utils.changeUserStateTo(ctx, changeDateState);
 
     await this.changeDateStart(ctx);
 
     bot.on('message', async (ctx: ITelCtx) => {
+      if (await this.utils.isUserNotAtState(ctx, changeDateState)) {
+        return;
+      }
+
       try {
         if (ctx.text.match(cancelCommand)) {
           await this.cancelCommand(ctx);
@@ -71,7 +73,7 @@ export class ChangeDateController {
       },
     });
 
-    this.appController.enterMainMenuScene();
+    this.utils.enterMainMenuScene(ctx);
   }
 
   private async changeAppointment(ctx: ITelCtx) {
@@ -117,7 +119,7 @@ export class ChangeDateController {
 
     if (success) {
       await bot.sendMessage(ctx.chat.id, changeDateSuccessful);
-      this.appController.enterMainMenuScene();
+      this.utils.enterMainMenuScene(ctx);
 
       return;
     }

@@ -9,17 +9,19 @@ import { UtilsModule } from 'src/utils/utils.module';
 import { ChangeDateModule } from 'src/change-date/change-date.module';
 import { ChangeMasterModule } from 'src/change-master/change-master.module';
 import { ChangeServiceModule } from 'src/change-service/change-service.module';
+import { FirebaseUsersModule } from 'src/firebase-users/firebase-users.module';
 
 @Module({
   imports: [
     UtilsModule,
-    UsersModule,
     AppointmentsModule,
-    forwardRef(() => NewAppointmentModule),
-    forwardRef(() => AbortModule),
-    forwardRef(() => ChangeDateModule),
-    forwardRef(() => ChangeMasterModule),
-    forwardRef(() => ChangeServiceModule),
+    FirebaseUsersModule,
+    UsersModule,
+    NewAppointmentModule,
+    ChangeDateModule,
+    ChangeMasterModule,
+    ChangeServiceModule,
+    AbortModule,
   ],
   providers: [AppController, AppService],
   exports: [AppController],

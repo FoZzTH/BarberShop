@@ -21,4 +21,7 @@ export const env = {
     name: process.env.DB_NAME || 'barbershop',
     port: +process.env.DB_PORT || 5432,
   },
+  firebase: {
+    serviceAccount: process.env.SERVICE_ACCOUNT_PATH || '',
+  },
 };
